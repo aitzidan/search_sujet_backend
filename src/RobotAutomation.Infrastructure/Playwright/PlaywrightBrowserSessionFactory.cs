@@ -29,16 +29,31 @@ internal sealed class PlaywrightBrowserSessionFactory : IBrowserSessionFactory, 
         _logger = logger;
     }
 
-    public async Task<IRobotPageSession> CreateSessionAsync(CancellationToken ct)
+    public async Task<IRobotPageSession> CreateSessionAsync(RobotSessionOptions options, CancellationToken ct)
     {
         var browser = await GetBrowserAsync(ct);
+
+        // Restore a previous run's cookies/localStorage when asked AND a state file already exists —
+        // Playwright throws on a missing StorageStatePath, so the first run must start clean.
+        var reuse = !string.IsNullOrWhiteSpace(options.StorageStatePath);
+        var restore = reuse && File.Exists(options.StorageStatePath);
+        if (reuse)
+        {
+            _logger.LogInformation(
+                restore
+                    ? "Reusing saved browser session from {Path} — the portal may already be authenticated"
+                    : "No saved session at {Path} yet; starting clean and saving it after a successful run",
+                options.StorageStatePath);
+        }
+
         var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
-            IgnoreHTTPSErrors = true
+            IgnoreHTTPSErrors = true,
+            StorageStatePath = restore ? options.StorageStatePath : null
         });
         context.SetDefaultTimeout(_options.DefaultTimeoutMs);
         var page = await context.NewPageAsync();
-        return new PlaywrightPageSession(context, new PlaywrightRobotPage(page));
+        return new PlaywrightPageSession(context, new PlaywrightRobotPage(page), options.StorageStatePath);
     }
 
     private async Task<IBrowser> GetBrowserAsync(CancellationToken ct)

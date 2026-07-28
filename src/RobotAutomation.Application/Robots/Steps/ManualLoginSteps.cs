@@ -4,6 +4,46 @@ using RobotAutomation.Application.Robots.Abstractions;
 namespace RobotAutomation.Application.Robots.Steps;
 
 /// <summary>
+/// Opens the portal for a robot whose landing page is not known in advance: with session reuse enabled
+/// the portal may drop straight into the authenticated application instead of the login form.
+///
+/// The readiness wait is therefore best-effort — it confirms the login form when present, but a miss is
+/// logged rather than fatal, because the following step is what actually determines whether we are
+/// authenticated (and it waits on a human-scale timeout).
+/// </summary>
+public sealed class OpenPortalStep : IRobotStep
+{
+    public string Name => "Ouverture du portail";
+
+    public async Task ExecuteAsync(RobotContext ctx, CancellationToken ct)
+    {
+        var url = ctx.Portal.FullUrl;
+        ctx.Logger.LogInformation("Navigating to portal {Url}", url);
+        await ctx.Page.GotoAsync(url, ctx.Portal.NavigationWaitUntil, ct);
+
+        var ready = string.IsNullOrWhiteSpace(ctx.Portal.ReadySelector)
+            ? ctx.Portal.Selectors.UsernameInput
+            : ctx.Portal.ReadySelector;
+        if (string.IsNullOrWhiteSpace(ready)) return;
+
+        try
+        {
+            await ctx.Page.WaitForSelectorAsync(ready, ctx.DefaultTimeoutMs, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            ctx.Logger.LogInformation(
+                "Login form ('{Ready}') did not appear — likely already authenticated from a reused session",
+                ready);
+        }
+    }
+}
+
+/// <summary>
 /// Hands the login over to the operator: the robot opens the portal in a visible browser and waits
 /// while the human types identifier, password and CAPTCHA and submits.
 ///
@@ -22,6 +62,14 @@ public sealed class AwaitManualLoginStep : IRobotStep
 
     public async Task ExecuteAsync(RobotContext ctx, CancellationToken ct)
     {
+        // Checked before the visible-browser guard: a reused session needs no typing at all, so a run
+        // that inherits a valid login is free to proceed even headless.
+        if (await LoggedInAsync(ctx, ct))
+        {
+            ctx.Logger.LogInformation("Session déjà authentifiée (session réutilisée) — saisie non nécessaire");
+            return;
+        }
+
         if (!ctx.BrowserVisible)
             throw new InvalidOperationException(
                 "Ce robot exige une fenêtre de navigateur visible : l'utilisateur doit saisir lui-même " +
@@ -32,7 +80,7 @@ public sealed class AwaitManualLoginStep : IRobotStep
             "EN ATTENTE DE L'UTILISATEUR — saisissez identifiant, mot de passe et CAPTCHA dans la fenêtre " +
             "du navigateur, puis cliquez sur « connexion » ({Seconds} s max)", timeout / 1000);
 
-        if (!await ManualWait.UntilAsync(ctx, timeout, PollIntervalMs, LoggedInAsync, ct))
+        if (!await Poll.UntilAsync(ctx, timeout, PollIntervalMs, LoggedInAsync, ct))
             throw new InvalidOperationException(
                 $"Aucune connexion détectée après {timeout / 1000} s. Le formulaire de connexion est-il " +
                 "toujours affiché (identifiant, mot de passe ou CAPTCHA incorrect) ?");
@@ -90,7 +138,7 @@ public sealed class AwaitOneTimeCodeStep : IRobotStep
             "du navigateur, puis cliquez sur « valider » ({Seconds} s max)", timeout / 1000);
 
         // Accepted <=> the code page is replaced by the authenticated application.
-        var accepted = await ManualWait.UntilAsync(
+        var accepted = await Poll.UntilAsync(
             ctx, timeout, PollIntervalMs,
             async (c, token) => !await c.Page.IsVisibleAsync(codePage, token), ct);
 
@@ -99,25 +147,5 @@ public sealed class AwaitOneTimeCodeStep : IRobotStep
                 $"Le code de vérification n'a pas été validé après {timeout / 1000} s.");
 
         ctx.Logger.LogInformation("Code de vérification accepté — session authentifiée, le robot prend le relais");
-    }
-}
-
-/// <summary>Polls a condition until it holds or the (human-scale) deadline passes.</summary>
-internal static class ManualWait
-{
-    public static async Task<bool> UntilAsync(
-        RobotContext ctx,
-        int timeoutMs,
-        int pollIntervalMs,
-        Func<RobotContext, CancellationToken, Task<bool>> condition,
-        CancellationToken ct)
-    {
-        var deadline = DateTimeOffset.UtcNow.AddMilliseconds(timeoutMs);
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            if (await condition(ctx, ct)) return true;
-            await Task.Delay(pollIntervalMs, ct);
-        }
-        return false;
     }
 }

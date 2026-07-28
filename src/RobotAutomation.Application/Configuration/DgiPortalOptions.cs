@@ -52,6 +52,34 @@ public sealed class DgiPortalOptions
     /// </summary>
     public int ManualInputTimeoutMs { get; set; } = 300_000;
 
+    /// <summary>
+    /// Hard cap on how many existing declarations a single run may delete to clear the way for a new one.
+    /// Deletion is irreversible on a real tax portal, so the robot stops at this many and reports what it
+    /// left behind rather than emptying a table it may have misread. Raise it only for a portal whose list
+    /// legitimately holds several pending declarations.
+    /// </summary>
+    public int MaxDeclarationDeletions { get; set; } = 1;
+
+    /// <summary>
+    /// Carry the browser session (cookies + localStorage) across runs for this portal, so a login one
+    /// run performed can be reused by the next instead of re-authenticating every time. Intended for
+    /// DEVELOPMENT against portals with an interactive login (CAPTCHA, one-time codes).
+    ///
+    /// How far it gets you depends on the portal: reuse lasts only as long as the portal considers the
+    /// session valid, so an idle timeout or a short-lived server session will still force a fresh login
+    /// (and whether it also skips a one-time-code challenge depends on whether that portal issues a
+    /// longer-lived "trusted device" cookie). Robots must therefore tolerate either landing page.
+    ///
+    /// Off by default — with it on, runs are no longer isolated from each other.
+    /// </summary>
+    public bool ReuseSession { get; set; }
+
+    /// <summary>
+    /// Where the reused session is stored. Blank => a per-portal file under the system temp folder.
+    /// The file contains live authentication cookies: treat it as a secret and never commit it.
+    /// </summary>
+    public string? SessionStatePath { get; set; }
+
     public SelectorMap Selectors { get; set; } = new();
 
     public SuccessRuleOptions SuccessRule { get; set; } = new();

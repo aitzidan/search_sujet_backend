@@ -13,6 +13,11 @@ obj/
 ## but screenshots written during runs (default temp path) should never be committed:
 screenshots/
 
+## Saved browser sessions (DgiPortals:*:ReuseSession) contain live authentication cookies — treat them
+## as secrets. They default to the system temp folder, but guard against a configured in-repo path:
+sessions/
+*.storagestate.json
+
 ## Run artifacts are named after the run GUID. They land here whenever Playwright:ScreenshotDirectory
 ## resolves to a relative path, and they can contain full-page screenshots of a real authenticated
 ## session (names, fiscal identifiers) — never commit them.

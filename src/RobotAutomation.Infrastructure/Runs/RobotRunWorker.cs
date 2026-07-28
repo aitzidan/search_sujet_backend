@@ -97,7 +97,8 @@ internal sealed class RobotRunWorker : BackgroundService
                 return;
             }
 
-            session = await _sessionFactory.CreateSessionAsync(runCts.Token);
+            session = await _sessionFactory.CreateSessionAsync(
+                new RobotSessionOptions(ResolveSessionStatePath(portal, request.PortalName)), runCts.Token);
 
             using var scope = _scopeFactory.CreateScope();
             var executor = scope.ServiceProvider.GetRequiredService<IRobotExecutor>();
@@ -115,6 +116,20 @@ internal sealed class RobotRunWorker : BackgroundService
             };
 
             await executor.ExecuteAsync(robot, run, ctx, runCts.Token);
+
+            // Persist the session only after a clean run. Saving a failed run could overwrite a good
+            // saved login with a logged-out state, forcing an avoidable re-authentication next time.
+            if (run.Status == RobotStatus.Succeeded)
+            {
+                try
+                {
+                    await session.SaveStateAsync(runCts.Token);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not save the browser session for run {RunId}", request.RunId);
+                }
+            }
         }
         catch (OperationCanceledException)
         {
@@ -135,5 +150,18 @@ internal sealed class RobotRunWorker : BackgroundService
             }
             _store.RemoveCancellation(request.RunId);
         }
+    }
+
+    /// <summary>
+    /// Null unless the portal opts into session reuse. Defaults to a per-portal file under the system
+    /// temp folder — deliberately outside the repository, because the file holds live auth cookies.
+    /// </summary>
+    private static string? ResolveSessionStatePath(DgiPortalOptions portal, string portalName)
+    {
+        if (!portal.ReuseSession) return null;
+        if (!string.IsNullOrWhiteSpace(portal.SessionStatePath)) return portal.SessionStatePath;
+
+        var safeName = new string(portalName.Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray());
+        return Path.Combine(Path.GetTempPath(), "robot-automation", "sessions", $"{safeName}.json");
     }
 }

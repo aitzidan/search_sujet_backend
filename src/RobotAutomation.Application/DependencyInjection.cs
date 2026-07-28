@@ -28,9 +28,11 @@ public static class DependencyInjection
         services.AddSingleton<SubmitLoginStep>();
         services.AddSingleton<VerifySuccessStep>();
         services.AddSingleton<ConnectWithCaptchaStep>(); // automated CAPTCHA + submit + verify (with retry)
-        // Operator hand-off steps (Robot 4 — real TVA portal: user types credentials/CAPTCHA/e-mail code).
+        // Robot 4 (real TVA portal) — operator hand-off for the login, then the declaration flow.
+        services.AddSingleton<OpenPortalStep>();
         services.AddSingleton<AwaitManualLoginStep>();
         services.AddSingleton<AwaitOneTimeCodeStep>();
+        services.AddSingleton<DeleteExistingDeclarationStep>();
         // Declaration steps (Robot 1).
         services.AddSingleton<OpenDeclarationStep>();
         services.AddSingleton<CreatePeriodStep>();
@@ -56,7 +58,7 @@ public static class DependencyInjection
         services.AddSingleton<IRobot, DgiDeclarationRobot>();    // Robot 1 — full télédéclaration flow
         services.AddSingleton<IRobot, DgiImportedProductsRobot>(); // Robot 2 — beyond login: imported products
         services.AddSingleton<IRobot, DgiRendezVousRobot>();     // Robot 3 — real rendez-vous portal
-        services.AddSingleton<IRobot, DgiTvaLoginRobot>();       // Robot 4 — real TVA portal login
+        services.AddSingleton<IRobot, DgiTvaRobot>();            // Robot 4 — real TVA portal: login + declaration
         services.AddSingleton<IRobotCatalog, RobotCatalog>();
 
         // The sequencing engine (one instance per run scope).
