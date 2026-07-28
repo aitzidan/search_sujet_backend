@@ -28,6 +28,13 @@ public sealed class RobotContext
     /// <summary>Default wait/action timeout (ms) for steps, taken from PlaywrightOptions at run start.</summary>
     public required int DefaultTimeoutMs { get; init; }
 
+    /// <summary>
+    /// Whether the run drives a browser window a human can actually see and type into. Steps that hand
+    /// off to the operator (manual login, CAPTCHA, one-time codes) must refuse to run when this is false,
+    /// otherwise they would silently wait out their timeout on an invisible headless page.
+    /// </summary>
+    public bool BrowserVisible { get; init; }
+
     /// <summary>Inter-step scratch state, e.g. the solved CAPTCHA code produced by one step and used by the next.</summary>
     public IDictionary<string, object?> Items { get; } = new Dictionary<string, object?>();
 

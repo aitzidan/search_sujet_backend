@@ -142,6 +142,26 @@ internal sealed class PlaywrightRobotPage : IRobotPage
     public Task<bool> IsCheckedAsync(string selector, CancellationToken ct) =>
         _page.Locator(selector).First.IsCheckedAsync();
 
+    public async Task<string?> GetValueAsync(string selector, CancellationToken ct)
+    {
+        var locator = _page.Locator(selector).First;
+        if (await locator.CountAsync() == 0) return null;
+        return await locator.InputValueAsync();
+    }
+
+    public async Task<string> WaitForNonEmptyValueAsync(string selector, int timeoutMs, CancellationToken ct)
+    {
+        var handle = await _page.WaitForFunctionAsync(
+            @"(sel) => {
+                const el = document.querySelector(sel);
+                const v = el && 'value' in el ? el.value : '';
+                return v && v.trim().length > 0 ? v : null;
+            }",
+            selector,
+            new PageWaitForFunctionOptions { Timeout = timeoutMs });
+        return await handle.JsonValueAsync<string>();
+    }
+
     public Task<int> CountAsync(string selector, CancellationToken ct) =>
         _page.Locator(selector).CountAsync();
 
@@ -150,6 +170,13 @@ internal sealed class PlaywrightRobotPage : IRobotPage
         var locator = _page.Locator(selector).First;
         if (await locator.CountAsync() == 0) return null;
         return (await locator.TextContentAsync())?.Trim();
+    }
+
+    public async Task<string?> GetAttributeAsync(string selector, string attribute, CancellationToken ct)
+    {
+        var locator = _page.Locator(selector).First;
+        if (await locator.CountAsync() == 0) return null;
+        return await locator.GetAttributeAsync(attribute);
     }
 
     public Task<bool> IsVisibleAsync(string selector, CancellationToken ct) =>
@@ -182,6 +209,9 @@ internal sealed class PlaywrightRobotPage : IRobotPage
         await _page.ScreenshotAsync(new PageScreenshotOptions { Path = filePath, FullPage = true });
         return filePath;
     }
+
+    public Task<byte[]> ScreenshotElementAsync(string selector, CancellationToken ct) =>
+        _page.Locator(selector).First.ScreenshotAsync();
 
     private static WaitUntilState ParseWaitUntil(string? waitUntil) => waitUntil?.ToLowerInvariant() switch
     {

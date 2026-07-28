@@ -12,3 +12,8 @@ obj/
 ## Playwright browser cache is machine-global (%LOCALAPPDATA%\ms-playwright) — nothing to ignore here,
 ## but screenshots written during runs (default temp path) should never be committed:
 screenshots/
+
+## Run artifacts are named after the run GUID. They land here whenever Playwright:ScreenshotDirectory
+## resolves to a relative path, and they can contain full-page screenshots of a real authenticated
+## session (names, fiscal identifiers) — never commit them.
+[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/

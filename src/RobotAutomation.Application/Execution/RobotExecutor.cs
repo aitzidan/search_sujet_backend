@@ -94,8 +94,7 @@ public sealed class RobotExecutor : IRobotExecutor
     {
         try
         {
-            var baseDir = _options.ScreenshotDirectory
-                          ?? Path.Combine(Path.GetTempPath(), "robot-automation", "screenshots");
+            var baseDir = _options.ResolveArtifactDirectory();
             var slug = new string(stepName.Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray());
             var path = Path.Combine(baseDir, runId.ToString("N"), $"{order:D2}-{slug}.png");
             return await ctx.Page.ScreenshotAsync(path, CancellationToken.None);

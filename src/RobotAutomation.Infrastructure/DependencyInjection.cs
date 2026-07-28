@@ -10,6 +10,10 @@ using RobotAutomation.Infrastructure.Files;
 using RobotAutomation.Infrastructure.Playwright;
 using RobotAutomation.Infrastructure.Runs;
 
+// The whole solution already runs Windows-only (headed Chromium via Playwright); this silences
+// CA1416 for OcrCaptchaSolver's System.Drawing.Common usage without annotating every call site.
+[assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]
+
 namespace RobotAutomation.Infrastructure;
 
 /// <summary>Composition root for Infrastructure (Playwright driver, run store/queue/worker, config).</summary>
@@ -29,7 +33,10 @@ public static class DependencyInjection
         // Run state, queue, captcha solver, sample files, and the background executor.
         services.AddSingleton<IRunStore, InMemoryRunStore>();
         services.AddSingleton<IRobotRunQueue, ChannelRobotRunQueue>();
-        services.AddSingleton<ICaptchaSolver, DomTextCaptchaSolver>();
+        services.AddSingleton<DomTextCaptchaSolver>();
+        services.AddSingleton<ManualCaptchaSolver>();
+        services.AddSingleton<OcrCaptchaSolver>();
+        services.AddSingleton<ICaptchaSolver, CaptchaSolverDispatcher>();
         services.AddSingleton<ISampleFileProvider, TempSampleFileProvider>();
         services.AddHostedService<RobotRunWorker>();
 

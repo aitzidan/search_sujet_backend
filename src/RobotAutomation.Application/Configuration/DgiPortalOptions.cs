@@ -33,9 +33,34 @@ public sealed class DgiPortalOptions
     /// </summary>
     public bool StopBeforeFinalSubmit { get; set; }
 
+    /// <summary>"DomText" (default — the fake portal renders the CAPTCHA answer as visible text),
+    /// "Ocr" (local Tesseract reads the image), or "Manual" (the robot pauses and waits for a human to
+    /// type it into the visible, non-headless browser window).</summary>
+    public string CaptchaMode { get; set; } = "DomText";
+
+    /// <summary>
+    /// How many times a login may be submitted when the portal rejects it — OCR misreads a distorted
+    /// CAPTCHA some of the time, and each retry loads a fresh image. Kept deliberately low: a portal
+    /// that counts these as failed sign-in attempts could lock the account.
+    /// </summary>
+    public int CaptchaMaxAttempts { get; set; } = 1;
+
+    /// <summary>
+    /// How long a step may wait for the operator to type something into the visible browser (login,
+    /// CAPTCHA, a one-time code from an e-mail). Generous by design — it is waiting on a person, not a
+    /// page. <c>Playwright:RunTimeoutMs</c> must exceed the sum of these waits or the run is killed first.
+    /// </summary>
+    public int ManualInputTimeoutMs { get; set; } = 300_000;
+
     public SelectorMap Selectors { get; set; } = new();
 
     public SuccessRuleOptions SuccessRule { get; set; } = new();
+
+    /// <summary>
+    /// Default login credentials for this portal, read from configuration (never hardcoded in a robot
+    /// or step). A run's <c>Parameters</c> ("username"/"password") still take precedence when supplied.
+    /// </summary>
+    public CredentialsOptions Credentials { get; set; } = new();
 
     /// <summary>
     /// Additional named selectors for the post-login screens (menu, declaration, imported products).
@@ -80,7 +105,8 @@ public sealed class SelectorMap
 /// </summary>
 public sealed class SuccessRuleOptions
 {
-    /// <summary>"SelectorVisible" (fake portal success page) or "PopupTitleContains" (real DGI SweetAlert2).</summary>
+    /// <summary>"SelectorVisible" (fake portal success page), "PopupTitleContains" (real DGI SweetAlert2),
+    /// or "AwaitHidden" (an Angular SPA login: wait for the login form to disappear).</summary>
     public string Mode { get; set; } = "SelectorVisible";
 
     // Used by PopupTitleContains:
@@ -88,4 +114,16 @@ public sealed class SuccessRuleOptions
     public string? ContentSelector { get; set; }
     public string? SuccessText { get; set; }
     public string? DismissSelector { get; set; }
+
+    /// <summary>Used by AwaitHidden: the selector (e.g. the login form container) expected to
+    /// disappear once login succeeds. On timeout, <see cref="ContentSelector"/> (if set and visible)
+    /// is read as the error message.</summary>
+    public string? HiddenSelector { get; set; }
+}
+
+/// <summary>Default username/password for a portal, sourced from configuration only.</summary>
+public sealed class CredentialsOptions
+{
+    public string? Username { get; set; }
+    public string? Password { get; set; }
 }

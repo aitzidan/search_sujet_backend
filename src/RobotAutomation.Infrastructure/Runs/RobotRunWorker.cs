@@ -110,7 +110,8 @@ internal sealed class RobotRunWorker : BackgroundService
                 Portal = portal,
                 Logger = _logger,
                 Parameters = request.Parameters,
-                DefaultTimeoutMs = _options.DefaultTimeoutMs
+                DefaultTimeoutMs = _options.DefaultTimeoutMs,
+                BrowserVisible = !_options.Headless
             };
 
             await executor.ExecuteAsync(robot, run, ctx, runCts.Token);

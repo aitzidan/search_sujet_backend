@@ -27,6 +27,12 @@ public sealed class VerifySuccessStep : IRobotStep
             return;
         }
 
+        if (string.Equals(mode, "AwaitHidden", StringComparison.OrdinalIgnoreCase))
+        {
+            await VerifyAwaitHiddenAsync(ctx, ct);
+            return;
+        }
+
         // Default: SelectorVisible
         var indicator = ctx.Portal.Selectors.SuccessIndicator;
         await ctx.Page.WaitForSelectorAsync(indicator, ctx.DefaultTimeoutMs, ct);
@@ -67,5 +73,36 @@ public sealed class VerifySuccessStep : IRobotStep
             : null;
         throw new InvalidOperationException(
             $"Login failed. Popup title: '{title}'. Detail: {error ?? "(none)"}");
+    }
+
+    /// <summary>An Angular SPA login (no distinct success page/URL): success = the login form container
+    /// disappears. On timeout, best-effort reads <see cref="SuccessRuleOptions.ContentSelector"/> as the
+    /// error message (e.g. a wrong-credentials/CAPTCHA banner) if it is configured and visible.</summary>
+    private static async Task VerifyAwaitHiddenAsync(RobotContext ctx, CancellationToken ct)
+    {
+        var rule = ctx.Portal.SuccessRule;
+        var hidden = rule.HiddenSelector
+            ?? throw new InvalidOperationException("SuccessRule.HiddenSelector is required for AwaitHidden mode.");
+
+        try
+        {
+            await ctx.Page.WaitForHiddenAsync(hidden, ctx.DefaultTimeoutMs, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var error = !string.IsNullOrWhiteSpace(rule.ContentSelector) && await ctx.Page.IsVisibleAsync(rule.ContentSelector!, ct)
+                ? await ctx.Page.GetTextAsync(rule.ContentSelector!, ct)
+                : null;
+            throw new InvalidOperationException(
+                $"La connexion n'a pas abouti : le formulaire de connexion ('{hidden}') est toujours affiché. " +
+                (error is not null ? $"Message d'erreur : {error}" : "Aucun message d'erreur détecté — vérifiez les identifiants ou le CAPTCHA."),
+                ex);
+        }
+
+        ctx.Logger.LogInformation("Login confirmed — form '{Selector}' is no longer visible", hidden);
     }
 }

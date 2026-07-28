@@ -36,11 +36,22 @@ public interface IRobotPage
     /// <summary>Whether a checkbox/radio is currently checked.</summary>
     Task<bool> IsCheckedAsync(string selector, CancellationToken ct);
 
+    /// <summary>Current value of the first element matching <paramref name="selector"/> (an input/textarea), or null if absent.</summary>
+    Task<string?> GetValueAsync(string selector, CancellationToken ct);
+
+    /// <summary>Waits until the first element matching <paramref name="selector"/> has a non-empty value — e.g. a human
+    /// typing a CAPTCHA answer into a visible, non-headless browser — then returns it.</summary>
+    Task<string> WaitForNonEmptyValueAsync(string selector, int timeoutMs, CancellationToken ct);
+
     /// <summary>Count elements matching the selector (used to know how many rows already exist).</summary>
     Task<int> CountAsync(string selector, CancellationToken ct);
 
     /// <summary>Visible text of the first element matching <paramref name="selector"/>, or null if absent.</summary>
     Task<string?> GetTextAsync(string selector, CancellationToken ct);
+
+    /// <summary>An attribute of the first element matching <paramref name="selector"/> (e.g. an image's
+    /// <c>src</c>), or null if the element or attribute is absent.</summary>
+    Task<string?> GetAttributeAsync(string selector, string attribute, CancellationToken ct);
 
     Task<bool> IsVisibleAsync(string selector, CancellationToken ct);
     Task WaitForSelectorAsync(string selector, int timeoutMs, CancellationToken ct);
@@ -56,4 +67,8 @@ public interface IRobotPage
 
     /// <summary>Capture a full-page screenshot to <paramref name="filePath"/>; returns the path written.</summary>
     Task<string> ScreenshotAsync(string filePath, CancellationToken ct);
+
+    /// <summary>Screenshot of just the first element matching <paramref name="selector"/> (e.g. a CAPTCHA
+    /// image), as PNG bytes — works whether the element is a data-URI image or a normally loaded one.</summary>
+    Task<byte[]> ScreenshotElementAsync(string selector, CancellationToken ct);
 }

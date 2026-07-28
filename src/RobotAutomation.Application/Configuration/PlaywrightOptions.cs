@@ -25,6 +25,16 @@ public sealed class PlaywrightOptions
     /// <summary>Retry attempts applied to retryable steps (Polly). 0 disables retries.</summary>
     public int MaxStepRetries { get; set; } = 2;
 
-    /// <summary>Where per-run screenshots are written. Null => a folder under the system temp path.</summary>
+    /// <summary>Where per-run screenshots are written. Blank => a folder under the system temp path.</summary>
     public string? ScreenshotDirectory { get; set; }
+
+    /// <summary>
+    /// The directory artifacts are actually written to. Treats blank as "unset" — a JSON <c>null</c>
+    /// binds to an empty string, and <c>Path.Combine("", …)</c> silently yields a path relative to the
+    /// process working directory, scattering run artifacts into the project folder.
+    /// </summary>
+    public string ResolveArtifactDirectory() =>
+        string.IsNullOrWhiteSpace(ScreenshotDirectory)
+            ? Path.Combine(Path.GetTempPath(), "robot-automation", "screenshots")
+            : ScreenshotDirectory;
 }

@@ -3,6 +3,9 @@ using RobotAutomation.Application;
 using RobotAutomation.Infrastructure;
 using RobotAutomation.WebApi.Middleware;
 
+// This API is Windows-only: it drives a headed Chromium and uses System.Drawing for CAPTCHA OCR.
+[assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ---------------------------------------------------------------------------
