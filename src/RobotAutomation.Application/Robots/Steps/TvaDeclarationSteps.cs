@@ -51,7 +51,16 @@ public sealed class DeleteExistingDeclarationStep : IRobotStep
         var row = ctx.Portal.Element("declarationRow");
         var deleteButton = ctx.Portal.Element("declarationDeleteButton");
 
-        await TvaDom.WaitForAsync(ctx, table, "le tableau des déclarations", ct);
+        // Having nothing to delete is a normal outcome, not a failure — and an account with no pending
+        // declaration may not render a table at all, so a missing table must not stop the run either. Both
+        // cases end the step quietly and let the robot go on to create the declaration.
+        if (!await TvaDom.PresentAsync(ctx, table, ct))
+        {
+            ctx.Logger.LogInformation(
+                "Aucun tableau de déclarations sur la page (« {Table} ») — rien à supprimer", table);
+            ctx.Output["declarationsSupprimees"] = "0";
+            return;
+        }
 
         var pending = await WaitForDeclarationsAsync(ctx, row, deleteButton, ct);
         if (pending == 0)
@@ -110,18 +119,8 @@ public sealed class DeleteExistingDeclarationStep : IRobotStep
     private static async Task<int> WaitForDeclarationsAsync(
         RobotContext ctx, string row, string deleteButton, CancellationToken ct)
     {
-        try
-        {
-            await ctx.Page.WaitForSelectorAsync(deleteButton, ctx.DefaultTimeoutMs, ct);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch
-        {
-            return 0;   // no delete icon within the full timeout => the table is loaded and empty
-        }
+        // No delete icon within the full timeout => the table is loaded and empty.
+        if (!await TvaDom.PresentAsync(ctx, deleteButton, ct)) return 0;
 
         return await ctx.Page.CountAsync(row, ct);
     }
@@ -262,9 +261,11 @@ public sealed class CreateDeclarationStep : IRobotStep
                      ?? TvaDom.Optional(ctx, "declarationRegime")
                      ?? DefaultRegime;
 
-        var regimeSelect = await ResolveRegimeSelectAsync(ctx, ct);
+        // Selected by visible label, not by value: the portal's values ("1"/"2") carry no meaning and could
+        // be renumbered, while the label is what the user asked for. Matching is accent- and
+        // case-insensitive and falls back to "contains", so "Mensuel" finds "Mensuel / إقرار الشهر".
         ctx.Logger.LogInformation("Régime demandé : {Regime}", regime);
-        await ctx.Page.SelectOptionByLabelAsync(regimeSelect, regime, ct);
+        await ctx.Page.SelectOptionByLabelAsync(ctx.Portal.Element("declarationRegimeSelect"), regime, ct);
 
         await ctx.Page.ClickAsync(createButton, ct);
 
@@ -300,28 +301,6 @@ public sealed class CreateDeclarationStep : IRobotStep
         ctx.Items["declarationId"] = id;
         ctx.Output["declarationId"] = id;
         ctx.Logger.LogInformation("Déclaration créée — identifiant {Id} ({Url})", id, ctx.Page.Url);
-    }
-
-    /// <summary>
-    /// The régime dropdown is the one control on this page located by a guessed id, so a miss falls back to
-    /// "the first &lt;select&gt; on the page" instead of failing outright — and says so, loudly, because the
-    /// fallback is a coincidence waiting to break.
-    /// </summary>
-    private static async Task<string> ResolveRegimeSelectAsync(RobotContext ctx, CancellationToken ct)
-    {
-        var primary = ctx.Portal.Element("declarationRegimeSelect");
-        if (await ctx.Page.CountAsync(primary, ct) > 0) return primary;
-
-        var fallback = TvaDom.Optional(ctx, "declarationRegimeSelectFallback");
-        if (fallback is not null && await ctx.Page.CountAsync(fallback, ct) > 0)
-        {
-            ctx.Logger.LogWarning(
-                "Le sélecteur de régime « {Primary} » est absent de la page — repli sur « {Fallback} ». " +
-                "Corrigez declarationRegimeSelect dans la configuration.", primary, fallback);
-            return fallback;
-        }
-
-        return primary;   // let SelectOptionByLabelAsync report which options the page actually offers
     }
 
     /// <summary>
@@ -470,6 +449,25 @@ internal static class TvaDom
     /// </summary>
     public static async Task<bool> ReachableAsync(RobotContext ctx, string selector, CancellationToken ct) =>
         await ctx.Page.IsVisibleAsync(selector, ct) && await ctx.Page.IsInViewportAsync(selector, ct);
+
+    /// <summary>Waits for an element and reports a miss instead of throwing — for the cases where "not
+    /// there" is a legitimate answer (an empty list renders no table) rather than a broken selector.</summary>
+    public static async Task<bool> PresentAsync(RobotContext ctx, string selector, CancellationToken ct)
+    {
+        try
+        {
+            await ctx.Page.WaitForSelectorAsync(selector, ctx.DefaultTimeoutMs, ct);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     /// <summary>Waits until an element is not just present but actually reachable — the panel has finished
     /// sliding in, not merely been rendered.</summary>

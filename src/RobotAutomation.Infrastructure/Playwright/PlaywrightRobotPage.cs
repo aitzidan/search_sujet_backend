@@ -53,7 +53,8 @@ internal sealed class PlaywrightRobotPage : IRobotPage
                     const M = new RegExp('[' + String.fromCharCode(768) + '-' + String.fromCharCode(879) + ']', 'g');
                     const norm = s => (s || '').normalize('NFD').replace(M, '')
                         .replace(/\s+/g, ' ').trim().toLowerCase();
-                    const isPlaceholder = o => !o.value || o.value === '0' || /^s[ée]lectionnez/.test(norm(o.textContent));
+                    const isPlaceholder = o => o.disabled || !o.value || o.value === '0' || o.value === '-1'
+                        || /^(s[ée]lectionnez|choisir|choisissez)/.test(norm(o.textContent));
                     const real = Array.from(el.options).filter(o => !isPlaceholder(o));
                     if (real.length === 1) return real[0].value;
                     const t = norm(target);
