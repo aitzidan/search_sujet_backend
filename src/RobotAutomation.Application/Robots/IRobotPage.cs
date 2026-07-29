@@ -54,6 +54,17 @@ public interface IRobotPage
     Task<string?> GetAttributeAsync(string selector, string attribute, CancellationToken ct);
 
     Task<bool> IsVisibleAsync(string selector, CancellationToken ct);
+
+    /// <summary>
+    /// Whether the first element matching <paramref name="selector"/> currently overlaps the viewport.
+    ///
+    /// Needed because "visible" and "clickable where it is" are not the same thing: an off-canvas panel
+    /// (a slide-in menu parked at <c>translateX(-100%)</c>) is reported visible — it has a non-empty box and
+    /// is not <c>display:none</c> — yet every click on it fails with "element is outside of the viewport",
+    /// because scrolling cannot bring it in. This is the test that tells a folded panel from an open one.
+    /// </summary>
+    Task<bool> IsInViewportAsync(string selector, CancellationToken ct);
+
     Task WaitForSelectorAsync(string selector, int timeoutMs, CancellationToken ct);
 
     /// <summary>Wait for an element to be hidden/absent (e.g. an AJAX loading spinner to disappear).</summary>

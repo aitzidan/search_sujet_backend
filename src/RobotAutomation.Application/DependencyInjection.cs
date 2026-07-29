@@ -33,6 +33,9 @@ public static class DependencyInjection
         services.AddSingleton<AwaitManualLoginStep>();
         services.AddSingleton<AwaitOneTimeCodeStep>();
         services.AddSingleton<DeleteExistingDeclarationStep>();
+        services.AddSingleton<OpenCurrentPeriodDeclarationStep>();
+        services.AddSingleton<CreateDeclarationStep>();
+        services.AddSingleton<SaveDeclarationStep>();
         // Declaration steps (Robot 1).
         services.AddSingleton<OpenDeclarationStep>();
         services.AddSingleton<CreatePeriodStep>();

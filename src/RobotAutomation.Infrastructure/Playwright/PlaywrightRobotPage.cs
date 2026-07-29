@@ -182,6 +182,23 @@ internal sealed class PlaywrightRobotPage : IRobotPage
     public Task<bool> IsVisibleAsync(string selector, CancellationToken ct) =>
         _page.Locator(selector).First.IsVisibleAsync();
 
+    public async Task<bool> IsInViewportAsync(string selector, CancellationToken ct)
+    {
+        var locator = _page.Locator(selector).First;
+        if (await locator.CountAsync() == 0) return false;
+
+        // The same geometry Playwright's own actionability check uses before a click: a box that overlaps
+        // the viewport on both axes. An element parked off-canvas fails this while still being "visible".
+        return await locator.EvaluateAsync<bool>(
+            @"el => {
+                const r = el.getBoundingClientRect();
+                if (r.width <= 0 || r.height <= 0) return false;
+                const w = window.innerWidth || document.documentElement.clientWidth;
+                const h = window.innerHeight || document.documentElement.clientHeight;
+                return r.bottom > 0 && r.right > 0 && r.top < h && r.left < w;
+            }");
+    }
+
     public Task WaitForSelectorAsync(string selector, int timeoutMs, CancellationToken ct) =>
         _page.Locator(selector).First.WaitForAsync(new LocatorWaitForOptions
         {

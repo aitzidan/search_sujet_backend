@@ -25,8 +25,9 @@ namespace RobotAutomation.Application.Robots;
 /// (<see cref="ConnectWithCaptchaStep"/> with the OCR solver) if this is ever revisited; it is simply not
 /// wired in here.</para>
 ///
-/// <para>The declaration part is being built one step at a time. First is clearing whatever declaration
-/// the home page already lists, since the portal refuses to create a new one alongside it.</para>
+/// <para>The declaration part is built one step at a time, and the order is a dependency chain: the home
+/// page is cleared of any pending declaration (the portal refuses to create a new one alongside it), then
+/// the current-period section is opened, a declaration is created, and it is saved.</para>
 /// </summary>
 public sealed class DgiTvaRobot : RobotBase
 {
@@ -34,17 +35,26 @@ public sealed class DgiTvaRobot : RobotBase
     private readonly AwaitManualLoginStep _awaitLogin;
     private readonly AwaitOneTimeCodeStep _awaitCode;
     private readonly DeleteExistingDeclarationStep _deleteExisting;
+    private readonly OpenCurrentPeriodDeclarationStep _openDeclaration;
+    private readonly CreateDeclarationStep _create;
+    private readonly SaveDeclarationStep _save;
 
     public DgiTvaRobot(
         OpenPortalStep open,
         AwaitManualLoginStep awaitLogin,
         AwaitOneTimeCodeStep awaitCode,
-        DeleteExistingDeclarationStep deleteExisting)
+        DeleteExistingDeclarationStep deleteExisting,
+        OpenCurrentPeriodDeclarationStep openDeclaration,
+        CreateDeclarationStep create,
+        SaveDeclarationStep save)
     {
         _open = open;
         _awaitLogin = awaitLogin;
         _awaitCode = awaitCode;
         _deleteExisting = deleteExisting;
+        _openDeclaration = openDeclaration;
+        _create = create;
+        _save = save;
     }
 
     public override string Key => "dgi-tva";
@@ -52,5 +62,5 @@ public sealed class DgiTvaRobot : RobotBase
     public override string DisplayName => "TVA — Connexion et déclaration";
 
     protected override IEnumerable<IRobotStep> BuildSteps() =>
-        [_open, _awaitLogin, _awaitCode, _deleteExisting];
+        [_open, _awaitLogin, _awaitCode, _deleteExisting, _openDeclaration, _create, _save];
 }
