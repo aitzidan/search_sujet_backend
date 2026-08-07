@@ -4,11 +4,6 @@ using RobotAutomation.Application.Robots;
 
 namespace RobotAutomation.Application.Runs;
 
-/// <summary>
-/// Starts a run of <paramref name="RobotKey"/> against portal <paramref name="PortalName"/> (default "real"),
-/// passing <paramref name="Parameters"/> (e.g. username/password) through to the worker.
-/// Returns immediately with a run id; the browser work happens in the background.
-/// </summary>
 public sealed record StartRobotRunCommand(
     string RobotKey,
     string? PortalName,
@@ -41,7 +36,6 @@ internal sealed class StartRobotRunHandler : IRequestHandler<StartRobotRunComman
 
     public async Task<StartRobotRunResult> Handle(StartRobotRunCommand command, CancellationToken ct)
     {
-        // Throws NotFoundException (-> HTTP 404) if the key is unknown.
         _ = _catalog.GetRequired(command.RobotKey);
 
         var portal = string.IsNullOrWhiteSpace(command.PortalName) ? DefaultPortal : command.PortalName!;

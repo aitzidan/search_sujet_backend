@@ -3,45 +3,31 @@ using RobotAutomation.Application.Configuration;
 
 namespace RobotAutomation.Application.Robots.Abstractions;
 
-/// <summary>
-/// Everything a step needs at run time, and a scratchpad for passing state between steps.
-/// Created fresh per run by the worker; never shared across runs.
-/// </summary>
 public sealed class RobotContext
 {
     public required Guid RunId { get; init; }
 
-    /// <summary>The browser page this run drives (backed by an isolated Playwright context).</summary>
     public required IRobotPage Page { get; init; }
 
-    /// <summary>Portal config selected for this run (selectors, base URL, success rule).</summary>
     public required DgiPortalOptions Portal { get; init; }
 
     public required ILogger Logger { get; init; }
 
-    /// <summary>
-    /// Run inputs such as credentials, keyed by name (e.g. "username", "password").
-    /// Sourced from the request; kept only in memory for the life of the run and never persisted.
-    /// </summary>
+    /// <summary>Run inputs keyed by name: the client's dossier, the période, the régime.</summary>
     public required IReadOnlyDictionary<string, string?> Parameters { get; init; }
 
-    /// <summary>Default wait/action timeout (ms) for steps, taken from PlaywrightOptions at run start.</summary>
     public required int DefaultTimeoutMs { get; init; }
 
     /// <summary>
     /// Whether the run drives a browser window a human can actually see and type into. Steps that hand
-    /// off to the operator (manual login, CAPTCHA, one-time codes) must refuse to run when this is false,
-    /// otherwise they would silently wait out their timeout on an invisible headless page.
+    /// off to the operator — the login, the CAPTCHA, the one-time code — must refuse to run when this is
+    /// false, since there would be nobody able to answer them.
     /// </summary>
     public bool BrowserVisible { get; init; }
 
-    /// <summary>Inter-step scratch state, e.g. the solved CAPTCHA code produced by one step and used by the next.</summary>
     public IDictionary<string, object?> Items { get; } = new Dictionary<string, object?>();
 
-    /// <summary>
-    /// Data the robot extracts and returns to the caller (e.g. an appointment confirmation number,
-    /// date, time). Copied into the run and exposed on the status response.
-    /// </summary>
+    /// <summary>Data the robot extracts and returns to the caller, exposed on the status response.</summary>
     public IDictionary<string, string?> Output { get; } = new Dictionary<string, string?>();
 
     public string? GetParameter(string key) =>

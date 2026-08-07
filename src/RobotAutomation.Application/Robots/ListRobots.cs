@@ -2,7 +2,6 @@ using MediatR;
 
 namespace RobotAutomation.Application.Robots;
 
-/// <summary>Describes a robot for the UI: its key, name, and step names.</summary>
 public sealed record RobotInfo(string Key, string DisplayName, IReadOnlyList<string> Steps);
 
 public sealed record ListRobotsQuery : IRequest<IReadOnlyList<RobotInfo>>;

@@ -12,11 +12,6 @@ using RobotAutomation.Domain.Enums;
 
 namespace RobotAutomation.Infrastructure.Runs;
 
-/// <summary>
-/// Long-running host service: dequeues run requests and executes each on its own task and browser
-/// context, capped by a concurrency semaphore. This is the modern, genuinely-parallel form of the
-/// legacy per-société loop — every run is independent and isolated.
-/// </summary>
 internal sealed class RobotRunWorker : BackgroundService
 {
     private readonly IRobotRunQueue _queue;
@@ -81,7 +76,6 @@ internal sealed class RobotRunWorker : BackgroundService
             return;
         }
 
-        // Run-scoped cancellation = app shutdown OR a manual cancel OR the run timeout.
         using var runCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         runCts.CancelAfter(_options.RunTimeoutMs);
         _store.RegisterCancellation(request.RunId, runCts);
@@ -117,8 +111,6 @@ internal sealed class RobotRunWorker : BackgroundService
 
             await executor.ExecuteAsync(robot, run, ctx, runCts.Token);
 
-            // Persist the session only after a clean run. Saving a failed run could overwrite a good
-            // saved login with a logged-out state, forcing an avoidable re-authentication next time.
             if (run.Status == RobotStatus.Succeeded)
             {
                 try
@@ -152,10 +144,6 @@ internal sealed class RobotRunWorker : BackgroundService
         }
     }
 
-    /// <summary>
-    /// Null unless the portal opts into session reuse. Defaults to a per-portal file under the system
-    /// temp folder — deliberately outside the repository, because the file holds live auth cookies.
-    /// </summary>
     private static string? ResolveSessionStatePath(DgiPortalOptions portal, string portalName)
     {
         if (!portal.ReuseSession) return null;

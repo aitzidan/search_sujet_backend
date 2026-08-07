@@ -9,13 +9,6 @@ using RobotAutomation.Domain.Enums;
 
 namespace RobotAutomation.Application.Execution;
 
-/// <summary>
-/// Iterates a robot's steps in order (the modern, explicit replacement for the legacy URL-driven
-/// <c>switch(etape)</c> dispatch). Per step it: records a Running entry, runs the step (wrapped in a
-/// Polly retry pipeline when the step is retryable), then records Succeeded — or, on failure,
-/// captures a screenshot, records Failed with the error, and stops the sequence (the modern
-/// <c>AbandonnerDeclaration</c>). Cancellation ends the run as Cancelled.
-/// </summary>
 public sealed class RobotExecutor : IRobotExecutor
 {
     private readonly PlaywrightOptions _options;
@@ -82,7 +75,6 @@ public sealed class RobotExecutor : IRobotExecutor
             }
         }
 
-        // Optional success artifact — a final screenshot for the audit trail / demo.
         var successShot = await TryScreenshotAsync(ctx, run.RunId, robot.Steps.Count, "success");
         if (successShot is not null) run.AddScreenshot(successShot);
         run.SetData(ctx.Output);

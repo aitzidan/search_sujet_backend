@@ -6,12 +6,6 @@ using RobotAutomation.Application.Sessions;
 
 namespace RobotAutomation.Infrastructure.Playwright;
 
-/// <summary>
-/// Singleton that owns one Playwright instance and one <see cref="IBrowser"/> (both expensive to
-/// create), lazily launched behind a lock. Each run gets a fresh <see cref="IBrowserContext"/> —
-/// an isolated incognito profile — so concurrent runs cannot see each other's cookies/state.
-/// Disposed by the DI container on shutdown, which closes the browser.
-/// </summary>
 internal sealed class PlaywrightBrowserSessionFactory : IBrowserSessionFactory, IAsyncDisposable
 {
     private readonly PlaywrightOptions _options;
@@ -33,8 +27,6 @@ internal sealed class PlaywrightBrowserSessionFactory : IBrowserSessionFactory, 
     {
         var browser = await GetBrowserAsync(ct);
 
-        // Restore a previous run's cookies/localStorage when asked AND a state file already exists —
-        // Playwright throws on a missing StorageStatePath, so the first run must start clean.
         var reuse = !string.IsNullOrWhiteSpace(options.StorageStatePath);
         var restore = reuse && File.Exists(options.StorageStatePath);
         if (reuse)

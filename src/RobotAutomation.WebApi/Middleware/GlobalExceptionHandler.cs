@@ -5,11 +5,6 @@ using RobotAutomation.Domain.Common;
 
 namespace RobotAutomation.WebApi.Middleware;
 
-/// <summary>
-/// Translates control-plane exceptions into RFC 7807 ProblemDetails responses:
-/// unknown robot/run -> 404, validation failure -> 400, anything else -> 500 (logged).
-/// Run failures are NOT exceptions here — they surface as RobotStatus.Failed on GET.
-/// </summary>
 internal sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;

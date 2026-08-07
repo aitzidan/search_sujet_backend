@@ -3,14 +3,10 @@ using RobotAutomation.Application;
 using RobotAutomation.Infrastructure;
 using RobotAutomation.WebApi.Middleware;
 
-// This API is Windows-only: it drives a headed Chromium and uses System.Drawing for CAPTCHA OCR.
 [assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---------------------------------------------------------------------------
-// Presentation: controllers, Swagger, ProblemDetails-based exception handling.
-// ---------------------------------------------------------------------------
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -19,22 +15,16 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "RobotAutomation API",
         Version = "v1",
-        Description = "Playwright-based robot runner (PoC) — launches login robots against the fake DGI portal."
+        Description = "Playwright-based robot runner — TVA déclaration on the DGI portal."
     });
 });
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-// ---------------------------------------------------------------------------
-// Application + Infrastructure composition roots (robot framework, Playwright engine, run worker).
-// ---------------------------------------------------------------------------
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// ---------------------------------------------------------------------------
-// CORS: let the Angular control panel (localhost:4201) call this API from the browser.
-// ---------------------------------------------------------------------------
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
                   ?? ["http://localhost:4201"];
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>

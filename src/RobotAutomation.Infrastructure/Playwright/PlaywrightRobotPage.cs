@@ -3,11 +3,6 @@ using RobotAutomation.Application.Robots;
 
 namespace RobotAutomation.Infrastructure.Playwright;
 
-/// <summary>
-/// The only adapter that speaks Playwright. Implements the Application-defined <see cref="IRobotPage"/>
-/// over a Playwright <see cref="IPage"/>. Uses CSS/text locators (which auto-pierce open shadow DOM —
-/// the Angular MFE renders inside a shadow root) and Playwright's built-in auto-waiting (no fixed sleeps).
-/// </summary>
 internal sealed class PlaywrightRobotPage : IRobotPage
 {
     private readonly IPage _page;
@@ -30,19 +25,6 @@ internal sealed class PlaywrightRobotPage : IRobotPage
 
     public async Task SelectOptionByLabelAsync(string selector, string label, CancellationToken ct)
     {
-        // WAIT for the matching <option> to exist (dependent dropdowns are AJAX-populated), matching by
-        // visible text — exact first, then "contains". Normalization is case-, space- AND accent-insensitive
-        // (NFD + strip diacritics): the real DGI site is full of accents ("DROITS COMPLÉMENTAIRES",
-        // "L'oriental", "Région"), so a single 'é' vs 'e' must not break the match. Options inside
-        // <optgroup> are handled automatically (el.options flattens them).
-        //
-        // Several DGI dropdowns collapse to a SINGLE real choice once upstream fields (Région/Direction/
-        // Nature) narrow them down — e.g. "Vous êtes" offers only "Particulier" for one Direction and only
-        // "Petite et moyenne entreprise" for another. Hardcoding one label is whack-a-mole, so when exactly
-        // one non-placeholder option exists, that option IS the answer regardless of the requested label.
-        // With 2+ real options, the requested label still decides via exact → contains matching.
-        //
-        // Then select by the option's value with Force (the Direction select is hidden behind Chosen, display:none).
         IJSHandle handle;
         try
         {
@@ -85,10 +67,6 @@ internal sealed class PlaywrightRobotPage : IRobotPage
         await _page.SelectOptionAsync(selector, new SelectOptionValue { Value = value },
             new PageSelectOptionOptions { Force = true });
 
-        // Best-effort visual refresh: Playwright's SelectOption already dispatches a real 'change' event
-        // (that's what fires the site's Prado.CallbackRequest onchange handlers — the AJAX cascade works),
-        // but the Chosen plugin occasionally needs its own explicit nudge to redraw the widget it renders
-        // over a forced/programmatic selection. Harmless no-op wherever jQuery/Chosen isn't attached.
         try
         {
             await _page.EvaluateAsync(
@@ -98,13 +76,11 @@ internal sealed class PlaywrightRobotPage : IRobotPage
                 }",
                 selector);
         }
-        catch { /* cosmetic only — never fail the step over this */ }
+        catch
+        {
+        }
     }
 
-    /// <summary>
-    /// Lists the current option labels of a select, so a "no option matched" error tells the user exactly
-    /// which values the (region/nature-dependent) dropdown actually offers instead of leaving them to guess.
-    /// </summary>
     private async Task<string> DescribeOptionsAsync(string selector)
     {
         try
@@ -129,8 +105,6 @@ internal sealed class PlaywrightRobotPage : IRobotPage
 
     public async Task<bool> IsDisabledAsync(string selector, CancellationToken ct)
     {
-        // Count first: IsDisabledAsync waits for the element and then throws on timeout, whereas callers
-        // polling for a state change want a plain "no" for an element that is not there.
         var locator = _page.Locator(selector).First;
         if (await locator.CountAsync() == 0) return false;
         return await locator.IsDisabledAsync();
@@ -138,9 +112,6 @@ internal sealed class PlaywrightRobotPage : IRobotPage
 
     public async Task<bool> IsEditableAsync(string selector, CancellationToken ct)
     {
-        // Same reason as above for counting first — plus one of its own: IsEditableAsync throws outright on an
-        // element that is not an input/textarea/select, and callers ask this about cells they have not yet
-        // proven to be fields.
         var locator = _page.Locator(selector).First;
         if (await locator.CountAsync() == 0) return false;
         return await locator.IsEditableAsync();
@@ -171,8 +142,6 @@ internal sealed class PlaywrightRobotPage : IRobotPage
         var locator = _page.Locator(selector).First;
         if (await locator.CountAsync() == 0) return false;
 
-        // The same geometry Playwright's own actionability check uses before a click: a box that overlaps
-        // the viewport on both axes. An element parked off-canvas fails this while still being "visible".
         return await locator.EvaluateAsync<bool>(
             @"el => {
                 const r = el.getBoundingClientRect();
@@ -183,8 +152,6 @@ internal sealed class PlaywrightRobotPage : IRobotPage
             }");
     }
 
-    // scrollTo(0, 0) rather than scrollIntoView or a smooth scroll: no animation to race with, so the very
-    // next reachability probe reads final geometry instead of a position mid-flight.
     public Task ScrollToTopAsync(CancellationToken ct) =>
         _page.EvaluateAsync("() => window.scrollTo(0, 0)");
 

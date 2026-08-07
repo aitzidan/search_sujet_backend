@@ -3,14 +3,6 @@ using RobotAutomation.Domain.ValueObjects;
 
 namespace RobotAutomation.Application.Runs;
 
-/// <summary>
-/// The mutable state of one robot run: status + the ordered step log + timestamps.
-/// The executor mutates the canonical instance through thread-safe methods; readers get a
-/// <see cref="Snapshot"/> (a deep copy) so they never observe a half-updated log.
-///
-/// Credentials are deliberately NOT stored here — they travel on the queue message and live
-/// only in the transient <c>RobotContext</c>.
-/// </summary>
 public sealed class RobotRun
 {
     private readonly Lock _gate = new();
@@ -42,7 +34,6 @@ public sealed class RobotRun
         }
     }
 
-    /// <summary>Record a step entering execution and return its 0-based order index.</summary>
     public int BeginStep(string name)
     {
         lock (_gate)
@@ -66,13 +57,11 @@ public sealed class RobotRun
         }
     }
 
-    /// <summary>Record an extra screenshot not tied to a specific step (e.g. the final success capture).</summary>
     public void AddScreenshot(string path)
     {
         lock (_gate) _screenshots.Add(path);
     }
 
-    /// <summary>Merge robot-extracted output data (e.g. the appointment confirmation fields) into the run.</summary>
     public void SetData(IEnumerable<KeyValuePair<string, string?>> data)
     {
         lock (_gate)
@@ -92,7 +81,6 @@ public sealed class RobotRun
         }
     }
 
-    /// <summary>A detached, immutable copy safe to hand to a concurrent reader (the API thread).</summary>
     public RobotRun Snapshot()
     {
         lock (_gate)

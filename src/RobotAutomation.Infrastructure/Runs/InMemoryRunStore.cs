@@ -4,11 +4,6 @@ using RobotAutomation.Domain.Enums;
 
 namespace RobotAutomation.Infrastructure.Runs;
 
-/// <summary>
-/// PoC run store: runs and their cancellation handles in concurrent dictionaries. Behind
-/// <see cref="IRunStore"/> so a durable (EF) store can replace it — the analog of the legacy
-/// <c>SuiviTeledeclaration</c> table — without touching Application.
-/// </summary>
 internal sealed class InMemoryRunStore : IRunStore
 {
     private readonly ConcurrentDictionary<Guid, RobotRun> _runs = new();

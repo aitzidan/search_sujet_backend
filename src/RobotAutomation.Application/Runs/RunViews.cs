@@ -1,6 +1,5 @@
 namespace RobotAutomation.Application.Runs;
 
-/// <summary>Read model for one step in a run's log.</summary>
 public sealed record StepLogView(
     int Order,
     string StepName,
@@ -11,7 +10,6 @@ public sealed record StepLogView(
     string? ScreenshotPath,
     string? CurrentUrl);
 
-/// <summary>Full read model for a run (status + step log), returned by GET /api/robot-runs/{id}.</summary>
 public sealed record RobotRunView(
     Guid RunId,
     string RobotKey,
@@ -26,7 +24,6 @@ public sealed record RobotRunView(
     IReadOnlyList<string> Screenshots,
     IReadOnlyDictionary<string, string?> Data);
 
-/// <summary>Compact read model for listing concurrent runs.</summary>
 public sealed record RunSummaryView(
     Guid RunId,
     string RobotKey,

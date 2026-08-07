@@ -3,14 +3,6 @@ using RobotAutomation.Application.Robots.Abstractions;
 
 namespace RobotAutomation.Application.Robots.Steps;
 
-/// <summary>
-/// Opens the portal for a robot whose landing page is not known in advance: with session reuse enabled
-/// the portal may drop straight into the authenticated application instead of the login form.
-///
-/// The readiness wait is therefore best-effort — it confirms the login form when present, but a miss is
-/// logged rather than fatal, because the following step is what actually determines whether we are
-/// authenticated (and it waits on a human-scale timeout).
-/// </summary>
 public sealed class OpenPortalStep : IRobotStep
 {
     public string Name => "Ouverture du portail";
@@ -57,13 +49,10 @@ public sealed class AwaitManualLoginStep : IRobotStep
 
     public string Name => "Connexion par l'utilisateur";
 
-    /// <summary>Never retried — re-running it would restart a wait the operator already satisfied.</summary>
     public bool Retryable => false;
 
     public async Task ExecuteAsync(RobotContext ctx, CancellationToken ct)
     {
-        // Checked before the visible-browser guard: a reused session needs no typing at all, so a run
-        // that inherits a valid login is free to proceed even headless.
         if (await LoggedInAsync(ctx, ct))
         {
             ctx.Logger.LogInformation("Session déjà authentifiée (session réutilisée) — saisie non nécessaire");
@@ -105,8 +94,7 @@ public sealed class AwaitManualLoginStep : IRobotStep
 
 /// <summary>
 /// Waits for the operator to type the 6-digit code the portal e-mails after a successful login, and
-/// to validate it. The code only exists in the user's mailbox, so this cannot be automated — the robot
-/// just watches for the code page to give way.
+/// to validate it. The code only exists in the user's mailbox, so this cannot be automated.
 ///
 /// Skips itself when no code page is present, so an account that is not challenged still flows through.
 /// </summary>
@@ -137,7 +125,6 @@ public sealed class AwaitOneTimeCodeStep : IRobotStep
             "EN ATTENTE DE L'UTILISATEUR — saisissez le code à 6 chiffres reçu par e-mail dans la fenêtre " +
             "du navigateur, puis cliquez sur « valider » ({Seconds} s max)", timeout / 1000);
 
-        // Accepted <=> the code page is replaced by the authenticated application.
         var accepted = await Poll.UntilAsync(
             ctx, timeout, PollIntervalMs,
             async (c, token) => !await c.Page.IsVisibleAsync(codePage, token), ct);

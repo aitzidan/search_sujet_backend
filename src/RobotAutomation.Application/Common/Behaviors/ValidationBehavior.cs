@@ -3,10 +3,6 @@ using MediatR;
 
 namespace RobotAutomation.Application.Common.Behaviors;
 
-/// <summary>
-/// MediatR pipeline behavior that runs any FluentValidation validators for a request before its
-/// handler. A failure throws <see cref="ValidationException"/>, mapped to HTTP 400 by the WebApi.
-/// </summary>
 public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {

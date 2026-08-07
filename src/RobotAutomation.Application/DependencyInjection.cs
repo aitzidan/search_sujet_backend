@@ -9,7 +9,6 @@ using RobotAutomation.Application.Robots.Steps;
 
 namespace RobotAutomation.Application;
 
-/// <summary>Composition root for the Application layer (the robot framework + control-plane).</summary>
 public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
@@ -20,8 +19,6 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-        // Reusable steps (stateless singletons — they share nothing between runs except via RobotContext).
-        // Operator hand-off for the login, then the declaration flow.
         services.AddSingleton<LoadDeclarationDataStep>();
         services.AddSingleton<OpenPortalStep>();
         services.AddSingleton<AwaitManualLoginStep>();
@@ -37,11 +34,9 @@ public static class DependencyInjection
         services.AddSingleton<FillDeclarationAmountsStep>();
         services.AddSingleton<RecalculateDeclarationStep>();
 
-        // Robots. Add more IRobot registrations here and they appear in the API automatically.
-        services.AddSingleton<IRobot, DgiTvaRobot>();            // real TVA portal: login + declaration
+        services.AddSingleton<IRobot, DgiTvaRobot>();
         services.AddSingleton<IRobotCatalog, RobotCatalog>();
 
-        // The sequencing engine (one instance per run scope).
         services.AddScoped<IRobotExecutor, RobotExecutor>();
 
         return services;

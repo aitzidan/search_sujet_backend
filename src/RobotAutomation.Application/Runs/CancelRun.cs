@@ -3,8 +3,6 @@ using RobotAutomation.Domain.Common;
 
 namespace RobotAutomation.Application.Runs;
 
-/// <summary>Requests cancellation of a run. Returns whether it was actually signalled
-/// (false if it had already finished). Throws NotFound if the run does not exist.</summary>
 public sealed record CancelRunCommand(Guid RunId) : IRequest<bool>;
 
 internal sealed class CancelRunHandler : IRequestHandler<CancelRunCommand, bool>
