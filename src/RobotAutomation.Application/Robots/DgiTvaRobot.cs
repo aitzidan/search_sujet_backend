@@ -21,9 +21,6 @@ namespace RobotAutomation.Application.Robots;
 /// declaration work.</item>
 /// </list>
 ///
-/// <para>Automated CAPTCHA solving still exists behind <c>DgiPortalOptions.CaptchaMode</c>
-/// (<see cref="ConnectWithCaptchaStep"/> with the OCR solver) if this is ever revisited; it is simply not
-/// wired in here.</para>
 ///
 /// <para>The declaration part is built one step at a time, and the order is a dependency chain: the home
 /// page is cleared of any pending declaration (the portal refuses to create a new one alongside it), then

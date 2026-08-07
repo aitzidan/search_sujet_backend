@@ -5,7 +5,7 @@ using RobotAutomation.Application.Robots;
 namespace RobotAutomation.Application.Runs;
 
 /// <summary>
-/// Starts a run of <paramref name="RobotKey"/> against portal <paramref name="PortalName"/> (default "fake"),
+/// Starts a run of <paramref name="RobotKey"/> against portal <paramref name="PortalName"/> (default "real"),
 /// passing <paramref name="Parameters"/> (e.g. username/password) through to the worker.
 /// Returns immediately with a run id; the browser work happens in the background.
 /// </summary>
@@ -26,7 +26,7 @@ public sealed class StartRobotRunCommandValidator : AbstractValidator<StartRobot
 
 internal sealed class StartRobotRunHandler : IRequestHandler<StartRobotRunCommand, StartRobotRunResult>
 {
-    private const string DefaultPortal = "fake";
+    private const string DefaultPortal = "real";
 
     private readonly IRobotCatalog _catalog;
     private readonly IRunStore _store;

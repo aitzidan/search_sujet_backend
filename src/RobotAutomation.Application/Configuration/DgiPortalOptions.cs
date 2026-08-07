@@ -1,12 +1,12 @@
 namespace RobotAutomation.Application.Configuration;
 
 /// <summary>
-/// Everything a robot needs to know about the portal it drives, kept entirely in
-/// configuration so that switching from the fake test portal to the real DGI site
-/// is a config change (a different named section), not a code change.
+/// Everything a robot needs to know about the portal it drives, kept entirely in configuration so that
+/// retuning the flow against a redesigned DOM — or pointing it at another portal — is a config change
+/// (a different named section), not a code change.
 ///
 /// Bound from <c>appsettings.json</c> "DgiPortals:{name}" as a named option and
-/// selected per run via <see cref="StartRobotRunRequest.PortalName"/>.
+/// selected per run via <c>StartRobotRunCommand.PortalName</c>.
 /// </summary>
 public sealed class DgiPortalOptions
 {
@@ -20,30 +20,18 @@ public sealed class DgiPortalOptions
     public string NavigationWaitUntil { get; set; } = "NetworkIdle";
 
     /// <summary>
-    /// Selector that proves the landing page is ready after navigation. If null, the login flow
-    /// falls back to the username input. For non-login portals (e.g. the rendez-vous site) set this
-    /// to the first element the robot needs (e.g. the "Prendre un rendez-vous" link).
+    /// Selector that proves the landing page is ready after navigation. If null, the flow falls back to
+    /// the username input — a best-effort check, since a run with a reused session may land straight in
+    /// the authenticated application instead of the login form.
     /// </summary>
     public string? ReadySelector { get; set; }
 
     /// <summary>
-    /// Safety switch for real-site robots: when true, the robot performs every step EXCEPT the final
-    /// irreversible submit (e.g. booking a real appointment). Lets you validate the flow without
-    /// creating real data. Shipped ON for the real "rdv" portal.
+    /// Safety switch: when true, the robot performs every step EXCEPT the irreversible writes — deleting
+    /// a pending declaration and sending an EDI archive. Lets you validate selectors and inputs against
+    /// the live portal without changing anything on the taxpayer's account.
     /// </summary>
     public bool StopBeforeFinalSubmit { get; set; }
-
-    /// <summary>"DomText" (default — the fake portal renders the CAPTCHA answer as visible text),
-    /// "Ocr" (local Tesseract reads the image), or "Manual" (the robot pauses and waits for a human to
-    /// type it into the visible, non-headless browser window).</summary>
-    public string CaptchaMode { get; set; } = "DomText";
-
-    /// <summary>
-    /// How many times a login may be submitted when the portal rejects it — OCR misreads a distorted
-    /// CAPTCHA some of the time, and each retry loads a fresh image. Kept deliberately low: a portal
-    /// that counts these as failed sign-in attempts could lock the account.
-    /// </summary>
-    public int CaptchaMaxAttempts { get; set; } = 1;
 
     /// <summary>
     /// How long a step may wait for the operator to type something into the visible browser (login,
@@ -85,12 +73,6 @@ public sealed class DgiPortalOptions
     public SuccessRuleOptions SuccessRule { get; set; } = new();
 
     /// <summary>
-    /// Default login credentials for this portal, read from configuration (never hardcoded in a robot
-    /// or step). A run's <c>Parameters</c> ("username"/"password") still take precedence when supplied.
-    /// </summary>
-    public CredentialsOptions Credentials { get; set; } = new();
-
-    /// <summary>
     /// Additional named selectors for the post-login screens (menu, declaration, imported products).
     /// Kept as a map — rather than fixed properties — so new robot scenarios can add selectors via
     /// config without changing this class. Steps read them through <see cref="Element"/>.
@@ -107,51 +89,26 @@ public sealed class DgiPortalOptions
 }
 
 /// <summary>
-/// CSS/text/role selectors for the elements a login robot touches. CSS only — never
-/// XPath — because Playwright's CSS engine auto-pierces open shadow DOM (the Angular MFE
-/// renders inside a shadow root) whereas XPath does not.
+/// The two selectors of the login screen the robot still reads — it does not fill that form (the operator
+/// does), it only needs to know which page is on screen. CSS only, never XPath, because Playwright's CSS
+/// engine auto-pierces open shadow DOM whereas XPath does not.
 /// </summary>
 public sealed class SelectorMap
 {
+    /// <summary>Fallback readiness check after navigation when <see cref="DgiPortalOptions.ReadySelector"/>
+    /// is not set.</summary>
     public string UsernameInput { get; set; } = "";
-    public string PasswordInput { get; set; } = "";
 
-    /// <summary>Element whose visible text is the CAPTCHA challenge to read (fake portal).</summary>
-    public string CaptchaChallenge { get; set; } = "";
-    public string CaptchaInput { get; set; } = "";
-
-    public string SubmitButton { get; set; } = "";
-
-    /// <summary>Element proving the success page rendered (used by the "SelectorVisible" success rule).</summary>
+    /// <summary>The one-time-code page (<c>app-codeacces</c>): its appearance means the identifier,
+    /// password and CAPTCHA were accepted, and its disappearance means the code was.</summary>
     public string SuccessIndicator { get; set; } = "";
 }
 
-/// <summary>
-/// Generalizes the legacy robot's hard-coded SweetAlert2 success detection
-/// ("read h2#swal2-title, contains 'Succès' => success, else div#swal2-content is the error,
-/// click .swal2-actions button to dismiss") into a data-driven rule.
-/// </summary>
+/// <summary>How the robot recognises that the operator's manual login went through.</summary>
 public sealed class SuccessRuleOptions
 {
-    /// <summary>"SelectorVisible" (fake portal success page), "PopupTitleContains" (real DGI SweetAlert2),
-    /// or "AwaitHidden" (an Angular SPA login: wait for the login form to disappear).</summary>
-    public string Mode { get; set; } = "SelectorVisible";
-
-    // Used by PopupTitleContains:
-    public string? TitleSelector { get; set; }
-    public string? ContentSelector { get; set; }
-    public string? SuccessText { get; set; }
-    public string? DismissSelector { get; set; }
-
-    /// <summary>Used by AwaitHidden: the selector (e.g. the login form container) expected to
-    /// disappear once login succeeds. On timeout, <see cref="ContentSelector"/> (if set and visible)
-    /// is read as the error message.</summary>
+    /// <summary>The login form container (<c>app-login</c>), expected to disappear once the credentials
+    /// are accepted. Watched alongside <see cref="SelectorMap.SuccessIndicator"/>, so an account that is
+    /// never challenged for a one-time code still flows through.</summary>
     public string? HiddenSelector { get; set; }
-}
-
-/// <summary>Default username/password for a portal, sourced from configuration only.</summary>
-public sealed class CredentialsOptions
-{
-    public string? Username { get; set; }
-    public string? Password { get; set; }
 }

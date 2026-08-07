@@ -21,14 +21,7 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
         // Reusable steps (stateless singletons — they share nothing between runs except via RobotContext).
-        // Login steps (shared by every robot).
-        services.AddSingleton<NavigateStep>();
-        services.AddSingleton<FillCredentialsStep>();
-        services.AddSingleton<SolveCaptchaStep>();
-        services.AddSingleton<SubmitLoginStep>();
-        services.AddSingleton<VerifySuccessStep>();
-        services.AddSingleton<ConnectWithCaptchaStep>(); // automated CAPTCHA + submit + verify (with retry)
-        // Robot 4 (real TVA portal) — operator hand-off for the login, then the declaration flow.
+        // Operator hand-off for the login, then the declaration flow.
         services.AddSingleton<LoadDeclarationDataStep>();
         services.AddSingleton<OpenPortalStep>();
         services.AddSingleton<AwaitManualLoginStep>();
@@ -43,32 +36,9 @@ public static class DependencyInjection
         services.AddSingleton<EditDeclarationStep>();
         services.AddSingleton<FillDeclarationAmountsStep>();
         services.AddSingleton<RecalculateDeclarationStep>();
-        // Declaration steps (Robot 1).
-        services.AddSingleton<OpenDeclarationStep>();
-        services.AddSingleton<CreatePeriodStep>();
-        services.AddSingleton<UploadEdiFileStep>();
-        services.AddSingleton<FillDeclarationStep>();
-        services.AddSingleton<SubmitDeclarationStep>();
-        services.AddSingleton<VerifyDeclarationStep>();
-        // Imported-products steps (Robot 2).
-        services.AddSingleton<OpenImportedProductsStep>();
-        services.AddSingleton<EnterImportedProductsStep>();
-        services.AddSingleton<SubmitImportedProductsStep>();
-        services.AddSingleton<VerifyImportedProductsStep>();
-        // Rendez-vous steps (Robot 3 — real site).
-        services.AddSingleton<OpenRendezVousStep>();
-        services.AddSingleton<SelectPrestationStep>();
-        services.AddSingleton<ChooseSlotStep>();
-        services.AddSingleton<FillValidationStep>();
-        services.AddSingleton<ConfirmRendezVousStep>();
-        services.AddSingleton<CaptureConfirmationStep>();
 
         // Robots. Add more IRobot registrations here and they appear in the API automatically.
-        services.AddSingleton<IRobot, DgiLoginRobot>();          // simple login (kept for Swagger/self-test)
-        services.AddSingleton<IRobot, DgiDeclarationRobot>();    // Robot 1 — full télédéclaration flow
-        services.AddSingleton<IRobot, DgiImportedProductsRobot>(); // Robot 2 — beyond login: imported products
-        services.AddSingleton<IRobot, DgiRendezVousRobot>();     // Robot 3 — real rendez-vous portal
-        services.AddSingleton<IRobot, DgiTvaRobot>();            // Robot 4 — real TVA portal: login + declaration
+        services.AddSingleton<IRobot, DgiTvaRobot>();            // real TVA portal: login + declaration
         services.AddSingleton<IRobotCatalog, RobotCatalog>();
 
         // The sequencing engine (one instance per run scope).
