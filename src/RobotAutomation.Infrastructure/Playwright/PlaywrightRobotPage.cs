@@ -143,6 +143,25 @@ internal sealed class PlaywrightRobotPage : IRobotPage
     public Task<bool> IsCheckedAsync(string selector, CancellationToken ct) =>
         _page.Locator(selector).First.IsCheckedAsync();
 
+    public async Task<bool> IsDisabledAsync(string selector, CancellationToken ct)
+    {
+        // Count first: IsDisabledAsync waits for the element and then throws on timeout, whereas callers
+        // polling for a state change want a plain "no" for an element that is not there.
+        var locator = _page.Locator(selector).First;
+        if (await locator.CountAsync() == 0) return false;
+        return await locator.IsDisabledAsync();
+    }
+
+    public async Task<bool> IsEditableAsync(string selector, CancellationToken ct)
+    {
+        // Same reason as above for counting first — plus one of its own: IsEditableAsync throws outright on an
+        // element that is not an input/textarea/select, and callers ask this about cells they have not yet
+        // proven to be fields.
+        var locator = _page.Locator(selector).First;
+        if (await locator.CountAsync() == 0) return false;
+        return await locator.IsEditableAsync();
+    }
+
     public async Task<string?> GetValueAsync(string selector, CancellationToken ct)
     {
         var locator = _page.Locator(selector).First;
@@ -199,6 +218,11 @@ internal sealed class PlaywrightRobotPage : IRobotPage
                 return r.bottom > 0 && r.right > 0 && r.top < h && r.left < w;
             }");
     }
+
+    // scrollTo(0, 0) rather than scrollIntoView or a smooth scroll: no animation to race with, so the very
+    // next reachability probe reads final geometry instead of a position mid-flight.
+    public Task ScrollToTopAsync(CancellationToken ct) =>
+        _page.EvaluateAsync("() => window.scrollTo(0, 0)");
 
     public Task WaitForSelectorAsync(string selector, int timeoutMs, CancellationToken ct) =>
         _page.Locator(selector).First.WaitForAsync(new LocatorWaitForOptions

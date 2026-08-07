@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<VerifySuccessStep>();
         services.AddSingleton<ConnectWithCaptchaStep>(); // automated CAPTCHA + submit + verify (with retry)
         // Robot 4 (real TVA portal) — operator hand-off for the login, then the declaration flow.
+        services.AddSingleton<LoadDeclarationDataStep>();
         services.AddSingleton<OpenPortalStep>();
         services.AddSingleton<AwaitManualLoginStep>();
         services.AddSingleton<AwaitOneTimeCodeStep>();
@@ -36,6 +37,12 @@ public static class DependencyInjection
         services.AddSingleton<OpenCurrentPeriodDeclarationStep>();
         services.AddSingleton<CreateDeclarationStep>();
         services.AddSingleton<SaveDeclarationStep>();
+        services.AddSingleton<OpenEdiUploadStep>();
+        services.AddSingleton<SendEdiFileStep>();
+        services.AddSingleton<ReturnToDeclarationListStep>();
+        services.AddSingleton<EditDeclarationStep>();
+        services.AddSingleton<FillDeclarationAmountsStep>();
+        services.AddSingleton<RecalculateDeclarationStep>();
         // Declaration steps (Robot 1).
         services.AddSingleton<OpenDeclarationStep>();
         services.AddSingleton<CreatePeriodStep>();

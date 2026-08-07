@@ -36,6 +36,29 @@ public interface IRobotPage
     /// <summary>Whether a checkbox/radio is currently checked.</summary>
     Task<bool> IsCheckedAsync(string selector, CancellationToken ct);
 
+    /// <summary>
+    /// Whether the first element matching <paramref name="selector"/> is disabled — the <c>disabled</c>
+    /// attribute, <c>aria-disabled</c>, or an ancestor disabled <c>&lt;fieldset&gt;</c>.
+    ///
+    /// Used as an outcome signal, not just a guard: a portal that greys out its submit once a form is
+    /// saved is telling you the save landed, which some pages do instead of showing any message. Also
+    /// worth checking before a click — clicking a disabled element makes Playwright wait for it to become
+    /// enabled and then fail on timeout, which says nothing about why.
+    /// </summary>
+    Task<bool> IsDisabledAsync(string selector, CancellationToken ct);
+
+    /// <summary>
+    /// Whether the first element matching <paramref name="selector"/> can actually be typed into — enabled
+    /// <b>and</b> not <c>readonly</c>.
+    ///
+    /// Not the negation of <see cref="IsDisabledAsync"/>: a <c>readonly</c> input is reported as perfectly
+    /// enabled, yet filling it throws "element is not editable". This portal family uses exactly that to lock
+    /// a form — the legacy robot greys its own fields with <c>setAttribute("readOnly", "true")</c>
+    /// (winTeleDeclaration.xaml.cs:1852) — so "is this cell mine to fill?" has to be asked this way. Returns
+    /// false for an element that is not there.
+    /// </summary>
+    Task<bool> IsEditableAsync(string selector, CancellationToken ct);
+
     /// <summary>Current value of the first element matching <paramref name="selector"/> (an input/textarea), or null if absent.</summary>
     Task<string?> GetValueAsync(string selector, CancellationToken ct);
 
@@ -64,6 +87,17 @@ public interface IRobotPage
     /// because scrolling cannot bring it in. This is the test that tells a folded panel from an open one.
     /// </summary>
     Task<bool> IsInViewportAsync(string selector, CancellationToken ct);
+
+    /// <summary>
+    /// Scrolls the window back to the top of the document.
+    ///
+    /// Not needed to reach a button — Playwright scrolls an element into view before clicking it. It is
+    /// needed for this portal's slide-in navigation, which is positioned against the top of the document:
+    /// opened from a page scrolled to its footer, the panel unfolds *above* the viewport and its entries
+    /// are unreachable where they are (see <see cref="IsInViewportAsync"/>), which no amount of further
+    /// scrolling fixes because the click target moves with the page.
+    /// </summary>
+    Task ScrollToTopAsync(CancellationToken ct);
 
     Task WaitForSelectorAsync(string selector, int timeoutMs, CancellationToken ct);
 

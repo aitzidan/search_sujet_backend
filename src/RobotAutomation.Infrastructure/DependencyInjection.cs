@@ -2,10 +2,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RobotAutomation.Application.Captcha;
 using RobotAutomation.Application.Configuration;
+using RobotAutomation.Application.Declarations;
 using RobotAutomation.Application.Files;
 using RobotAutomation.Application.Runs;
 using RobotAutomation.Application.Sessions;
 using RobotAutomation.Infrastructure.Captcha;
+using RobotAutomation.Infrastructure.Declarations;
 using RobotAutomation.Infrastructure.Files;
 using RobotAutomation.Infrastructure.Playwright;
 using RobotAutomation.Infrastructure.Runs;
@@ -26,6 +28,7 @@ public static class DependencyInjection
         services.Configure<DgiPortalOptions>("real", configuration.GetSection("DgiPortals:real"));
         services.Configure<DgiPortalOptions>("rdv", configuration.GetSection("DgiPortals:rdv"));
         services.Configure<PlaywrightOptions>(configuration.GetSection(PlaywrightOptions.SectionName));
+        services.Configure<BridgeOptions>(configuration.GetSection(BridgeOptions.SectionName));
 
         // Playwright engine — a single browser, one isolated context per run.
         services.AddSingleton<IBrowserSessionFactory, PlaywrightBrowserSessionFactory>();
@@ -38,6 +41,11 @@ public static class DependencyInjection
         services.AddSingleton<OcrCaptchaSolver>();
         services.AddSingleton<ICaptchaSolver, CaptchaSolverDispatcher>();
         services.AddSingleton<ISampleFileProvider, TempSampleFileProvider>();
+
+        // Legacy data bridge — a 32-bit child process per call, so this adapter stays stateless and a
+        // singleton is safe (see BridgeDeclarationDataSource for why the process boundary exists).
+        services.AddSingleton<IDeclarationDataSource, BridgeDeclarationDataSource>();
+
         services.AddHostedService<RobotRunWorker>();
 
         return services;
